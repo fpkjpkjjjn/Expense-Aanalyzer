@@ -9,12 +9,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fpkjpkjjjn.expenseanalyzer"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.fpkjpkjjjn.expenseanalyzer"
     }
   }
 }
