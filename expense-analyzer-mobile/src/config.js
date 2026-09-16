@@ -9,4 +9,4 @@
 // специальный адрес 10.0.2.2 указывает на localhost хост-машины:
 // http://10.0.2.2:5000
 
-export const API_BASE_URL = "http://192.168.137.1:5000";
+export const API_BASE_URL = "http://147.232.182.182:5000";
