@@ -3,14 +3,13 @@ import unicodedata
 from rapidfuzz import fuzz
 
 
-# Keywords are grouped by the category already used by the application.
-# Slovak names are included together with common no-diacritic variants.
 CATEGORY_KEYWORDS = {
     "Groceries": [
-        "pyaterochka", "magnit", "supermarket",
+        "supermarket",
         "kaufland", "lidl", "billa", "tesco", "coop jednota",
         "fresh", "terno", "kraj", "koruna", "milk agro", "milk-agro", "teta", "101 drogerie",
-        "potraviny", "potravina", "food store",
+        "potraviny", "potravina", "food store", "cba", "yeme", "metro cash",
+        "hypernova", "hypernova", "moja samoska", "samoska",
     ],
     "Dining": [
         "cafe", "café", "restaurant", "bar", "restauracia", "reštaurácia",
@@ -24,22 +23,27 @@ CATEGORY_KEYWORDS = {
         "listok", "lístok", "public transport",
     ],
     "Fuel": [
-        "gas station", "lukoil", "slovnaft", "omv", "shell", "tanker",
+        "gas station", "slovnaft", "omv", "shell", "mol", "orlen", "tanker",
         "benzin", "benzín", "nafta", "palivo", "cerpacia stanica",
         "čerpacia stanica",
     ],
-    "Subscriptions": ["spotify", "netflix", "subscription", "predplatne", "predplatné"],
+    "Subscriptions": [
+        "spotify", "netflix", "subscription", "predplatne", "predplatné",
+        "disney+", "hbo max", "youtube premium", "apple music",
+    ],
     "Shopping": [
-        "ozon", "wildberries", "purchase", "oblecenie", "oblečenie",
+        "purchase", "oblecenie", "oblečenie",
         "clothing", "electronic", "elektronika", "alza", "mall.sk", "mall sk",
+        "datart", "nay elektro", "hej.sk", "sportisimo", "intersport",
+        "zoot.sk", "answear", "modivo", "hornbach", "obi",
     ],
     "Health": [
-        "pharmacy", "apteka", "lekaren", "lekáreň", "dm", "dm drogerie markt", "teta", "101 drogerie", "dr.max", "dr max",
+        "pharmacy", "lekaren", "lekáreň", "dm", "dm drogerie markt", "teta", "101 drogerie", "dr.max", "dr max",
         "benu", "health", "gym", "zdravie", "doktor", "medical",
     ],
     "Entertainment": [
         "cinema", "tickets", "kino", "vstupenka", "vstupenky", "divadlo",
-        "koncert", "game", "gaming",
+        "koncert", "game", "gaming", "cinemax", "cinema city",
     ],
     "Housing": [
         "rent", "najom", "nájom", "housing", "byt", "hypoteka", "hypotéka",
@@ -83,14 +87,11 @@ NORMALIZED_CATEGORY_KEYWORDS = {
 def categorize(description: str) -> str:
     description_normalized = _normalize(description)
 
-    # First use exact substring matching. This is deterministic and avoids
-    # false fuzzy matches for common short words such as "bolt".
     for category, keywords in NORMALIZED_CATEGORY_KEYWORDS.items():
         for keyword in keywords:
             if keyword and keyword in description_normalized:
                 return category
 
-    # Fall back to fuzzy matching for small spelling variations / bank text.
     best_category = "Other"
     best_score = 0
 
@@ -111,12 +112,12 @@ def categorize(description: str) -> str:
 
 if __name__ == "__main__":
     test_cases = [
-        "Pyaterochka Moscow",
         "Kaufland Košice",
         "Lidl Košice",
         "BILLA",
         "Tesco Stores",
         "COOP Jednota",
+        "CBA potraviny",
         "dm drogerie markt",
         "DPMK a.s.",
         "MHD Košice",
@@ -128,6 +129,12 @@ if __name__ == "__main__":
         "OMV",
         "Dr.Max",
         "lekáreň",
+        "Alza.sk",
+        "Sportisimo",
+        "Kauflnd Kosice",
+        "BILA supermark", 
+        "Dopravny podnik mest",
+        "Slovnft cerpacia st",
         "Something Random",
     ]
 
