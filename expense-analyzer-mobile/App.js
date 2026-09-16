@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import EntryScreen from "./src/screens/EntryScreen";
 import ReportScreen from "./src/screens/ReportScreen";
+import HistoryScreen from "./src/screens/HistoryScreen";
 import { colors } from "./src/theme";
 
 const Stack = createNativeStackNavigator();
@@ -35,6 +36,11 @@ export default function App() {
           name="Report"
           component={ReportScreen}
           options={{ title: "Отчёт" }}
+        />
+        <Stack.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{ title: "История трат" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

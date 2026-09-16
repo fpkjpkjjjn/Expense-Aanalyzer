@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { analyzeTransactions } from "../localAnalyzer";
+import { loadEntries, saveEntries } from "../storage";
 import { colors, spacing, radius, typography } from "../theme";
 
 function todayString() {
@@ -22,14 +24,33 @@ function todayString() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-let nextId = 1;
-
 export default function EntryScreen({ navigation }) {
   const [date, setDate] = useState(todayString());
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+  const nextIdRef = useRef(1);
+
+  // Подгружаем сохранённые траты при каждом открытии экрана — в том числе
+  // при первом запуске приложения и при возврате с экрана истории
+  // (например, после того как там нажали «Очистить»).
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      loadEntries().then((stored) => {
+        if (!isActive) return;
+        setEntries(stored);
+        const maxId = stored.reduce((max, entry) => Math.max(max, entry.id || 0), 0);
+        nextIdRef.current = maxId + 1;
+        setReady(true);
+      });
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   const addEntry = () => {
     const parsedAmount = parseFloat(amount.replace(",", "."));
@@ -43,16 +64,23 @@ export default function EntryScreen({ navigation }) {
       return;
     }
 
-    setEntries((prev) => [
-      { id: nextId++, date, description: description.trim(), amount: parsedAmount },
-      ...prev,
-    ]);
+    const newEntry = {
+      id: nextIdRef.current++,
+      date,
+      description: description.trim(),
+      amount: parsedAmount,
+    };
+    const updated = [newEntry, ...entries];
+    setEntries(updated);
+    saveEntries(updated); // сохраняем сразу, чтобы трата пережила перезапуск приложения
     setDescription("");
     setAmount("");
   };
 
   const removeEntry = (id) => {
-    setEntries((prev) => prev.filter((entry) => entry.id !== id));
+    const updated = entries.filter((entry) => entry.id !== id);
+    setEntries(updated);
+    saveEntries(updated);
   };
 
   const handleAnalyze = async () => {
@@ -85,6 +113,13 @@ export default function EntryScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.form}>
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => navigation.navigate("History")}
+        >
+          <Text style={styles.historyButtonText}>📜 История трат</Text>
+        </TouchableOpacity>
+
         <Text style={styles.label}>Дата</Text>
         <TextInput
           style={styles.input}
@@ -189,6 +224,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  historyButton: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  historyButtonText: {
+    color: colors.textSecondary,
+    fontWeight: "600",
+    fontSize: 14,
   },
   addButton: {
     marginTop: spacing.md,
