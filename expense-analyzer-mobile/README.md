@@ -1,132 +1,40 @@
-# Expense Analyzer — мобильное приложение (React Native / Expo)
+# Expense Analyzer — автономное Android-приложение
 
-Тёмный минималистичный интерфейс из двух экранов:
-1. **Мои траты** — ввод траты (дата, описание, сумма)
-2. **Отчёт** — общая сумма, категории, недели и топ-5 трат
+Приложение анализирует введённые расходы **прямо на телефоне**. Flask-сервер, IP-адрес компьютера и интернет для анализа не нужны.
 
-Категоризация выполняется backend на Flask. В неё добавлены словацкие магазины и сервисы, включая сети, часто встречающиеся в Кошице.
+## Что работает локально
 
-## Обычный запуск через Expo Go
+- добавление даты, описания и суммы;
+- категоризация расходов;
+- словацкие магазины и сервисы: Kaufland, Lidl, Billa, Tesco, COOP Jednota, Fresh, Terno, Kraj, Milk-Agro, dm, Teta, Dr.Max, BENU;
+- транспорт: DPMK, MHD, DPMK, Bolt, Uber, автобус, električka;
+- доставка и еда: Foodora, Wolt, Bolt Food, Bistro.sk, pizza, burger, kebab;
+- топливо: Slovnaft, OMV, Shell, бензин, nafta;
+- подписки, покупки, развлечения, жильё, коммунальные услуги, образование, спорт и путешествия;
+- итоговая сумма, расходы по категориям, по неделям и топ-5 трат.
 
-### 1. Настрой адрес backend
+Приложение не отправляет введённые траты на Flask API при обычном анализе.
 
-Открой `src/config.js` и укажи IP компьютера в локальной сети:
+## Сборка Android APK
 
-```js
-export const API_BASE_URL = "http://192.168.1.23:5000";
+Открой терминал в папке `expense-analyzer-mobile` и выполни:
+
+```powershell
+npx expo start
 ```
 
-`localhost` и `127.0.0.1` на реальном телефоне использовать нельзя: это адрес самого телефона.
+Для настоящего APK через EAS:
 
-### 2. Установи зависимости
-
-Один раз:
-
-```bash
-npm install
+```powershell
+eas.cmd build --platform android --profile preview
 ```
 
-### 3. Запусти Expo
-
-```bash
-npm start
-```
-
-Если LAN не подключается, можно использовать:
-
-```bash
-npx expo start --tunnel
-```
-
-## Сборка настоящего Android APK без Expo Go
-
-Проект настроен для **EAS Build**. Профиль `preview` создаёт устанавливаемый `.apk`.
-
-### 1. Установи EAS CLI (один раз)
-
-```bash
-npm install --global eas-cli
-```
-
-### 2. Войди в Expo
-
-```bash
-eas login
-```
-
-### 3. Перейди в папку mobile
-
-```bash
-cd expense-analyzer-mobile
-```
-
-### 4. Собери APK
-
-```bash
-eas build --platform android --profile preview
-```
-
-После завершения EAS даст ссылку на готовый APK. Его можно скачать на Android-телефон и установить как обычное приложение.
-
-Для production-профиля с APK:
-
-```bash
-eas build --platform android --profile production-apk
-```
-
-> EAS по умолчанию использует Android App Bundle (`.aab`) для production. Поэтому для прямой установки на телефон используется профиль `preview` или `production-apk` с `android.buildType: "apk"`.
-
-### Важный момент про backend
-
-Сам APK не запускает Flask-сервер. Для работы аналитики приложение всё равно должно иметь доступ к Flask API.
-
-Для тестирования дома можно оставить адрес вида:
-
-```text
-http://192.168.1.23:5000
-```
-
-и держать `python api.py` запущенным на компьютере в той же локальной сети.
-
-Для самостоятельной работы приложения без твоего компьютера backend нужно разместить на сервере с публичным HTTPS-адресом и затем указать этот URL в `src/config.js` перед сборкой APK.
+После сборки EAS даст ссылку на APK. Установленное приложение работает без запущенного `api.py`.
 
 ## Backend
 
-В `expense-analyzer-api`:
+Папка `expense-analyzer-api` остаётся в проекте как отдельная серверная часть и для старых API-сценариев, но **для работы мобильного приложения она больше не требуется**.
 
-```bash
-python -m venv venv
-```
+## Категоризация
 
-Windows:
-
-```powershell
-venv\Scripts\activate
-pip install -r requirements.txt
-python api.py
-```
-
-Проверка:
-
-```text
-http://127.0.0.1:5000/api/health
-```
-
-Ожидаемый ответ:
-
-```json
-{"status": "ok"}
-```
-
-## Категоризация для Словакии / Кошице
-
-Распознаются, в частности:
-
-- **Продукты:** Kaufland, Lidl, Billa, Tesco, COOP Jednota, Fresh, Terno, Kraj, Koruna, Milk-Agro
-- **Дрогерия/здоровье:** dm, dm drogerie markt, Teta, Dr.Max, BENU, lekáreň
-- **Транспорт:** DPMK, Dopravný podnik mesta Košice, MHD, автобус, električka, Bolt, Uber
-- **Еда/доставка:** Foodora, Wolt, Bolt Food, Bistro.sk, ресторан, pizza, burger, kebab
-- **Топливо:** Slovnaft, OMV, Shell, бензин, nafta, čerpacia stanica
-- Дополнительно: подписки, покупки, развлечения, жильё, коммунальные услуги, образование, спорт и путешествия.
-
-Поддерживаются варианты слов с диакритикой и без неё, например `lekáreň` / `lekaren`.
+Категоризация выполняется в `src/localAnalyzer.js`. Она нормализует регистр и словацкие диакритические знаки, поэтому варианты вроде `lekáreň` и `lekaren` распознаются одинаково.

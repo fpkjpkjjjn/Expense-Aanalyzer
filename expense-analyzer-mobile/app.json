@@ -17,6 +17,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.fpkjpkjjjn.expenseanalyzer"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f4ab35b6-405b-41b4-8de8-1ff3b7075e54"
+      }
     }
   }
 }

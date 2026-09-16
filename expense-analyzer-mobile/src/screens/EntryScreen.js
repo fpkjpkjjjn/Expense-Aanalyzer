@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { analyzeTransactions } from "../api/client";
+import { analyzeTransactions } from "../localAnalyzer";
 import { colors, spacing, radius, typography } from "../theme";
 
 function todayString() {
@@ -68,13 +68,10 @@ export default function EntryScreen({ navigation }) {
         description,
         amount,
       }));
-      const data = await analyzeTransactions(payload);
+      const data = analyzeTransactions(payload);
       navigation.navigate("Report", { data });
     } catch (error) {
-      const message =
-        error.response?.data?.error ||
-        "Не удалось связаться с сервером. Проверь, что backend запущен и адрес в src/config.js указан верно.";
-      Alert.alert("Ошибка", message);
+      Alert.alert("Ошибка", "Не удалось выполнить локальный анализ. Проверь данные трат.");
     } finally {
       setLoading(false);
     }
