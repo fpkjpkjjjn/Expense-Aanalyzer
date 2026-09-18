@@ -9,10 +9,18 @@
     cat = Categorizer("model.joblib")
     result = cat.predict("такси до аэропорта")
     # {'category': 'Транспорт', 'confidence': 0.87, 'alternatives': [...]}
+
+ВАЖНО: text_normalize.py должен лежать рядом с этим файлом (и с model.joblib).
+Модель обучена с preprocessor=normalize_text внутри TfidfVectorizer — эта
+функция сохранена как часть пайплайна, и joblib.load() должен суметь её
+найти/импортировать при загрузке, иначе упадёт с ModuleNotFoundError.
 """
 
 import sys
 import joblib
+
+import text_normalize  # noqa: F401 — не используется напрямую, но нужен для
+                        # распаковки model.joblib (см. примечание выше)
 
 
 class Categorizer:

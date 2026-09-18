@@ -21,6 +21,8 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report
 import joblib
 
+from text_normalize import normalize_text
+
 
 def build_pipeline(calibration_cv: int = 3) -> Pipeline:
     """Создаёт пайплайн: векторизация текста + классификатор.
@@ -32,7 +34,10 @@ def build_pipeline(calibration_cv: int = 3) -> Pipeline:
         analyzer="char_wb",     # символьные n-граммы — устойчивы к опечаткам,
         ngram_range=(2, 4),     # разным падежам/окончаниям слов
         min_df=1,
-        lowercase=True,
+        preprocessor=normalize_text,  # транслитерация кириллицы + снятие диакритики +
+                                       # нижний регистр — применяется одинаково при
+                                       # обучении и при предсказании, т.к. "зашита"
+                                       # прямо в пайплайн и сохраняется в model.joblib
     )
     # CalibratedClassifierCV поверх LinearSVC даёт predict_proba —
     # это нужно, чтобы знать "уверенность" модели в категории.
