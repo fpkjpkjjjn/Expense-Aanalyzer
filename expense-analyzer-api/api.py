@@ -15,19 +15,29 @@ JSON API для мобильного приложения (React Native).
 мог достучаться до сервера по IP компьютера (например http://192.168.1.23:5000).
 """
 
+import csv
 import os
 import tempfile
 import traceback
+from datetime import datetime
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from analyzer import load_and_analyze, analyze_transactions
+from skynet_categorizer import known_categories
+from ai_assistant import parse_expense
 
 app = Flask(__name__)
 CORS(app)  # разрешаем запросы с любого origin — упрощает разработку RN-приложения
 
 ALLOWED_EXTENSIONS = {"csv", "xlsx", "xls"}
+CORRECTIONS_PATH = os.path.join(os.path.dirname(__file__), "corrections.csv")
+
+
+def get_all_categories():
+    """Список категорий, которые знает твоя обученная модель."""
+    return known_categories()
 
 
 def allowed_file(filename: str) -> bool:
@@ -51,6 +61,8 @@ def format_result(result: dict) -> dict:
             "description": row["description"],
             "amount": round(float(row["amount"]), 2),
             "category": row["category"],
+            "category_source": row["category_source"],
+            "category_confidence": round(float(row["category_confidence"]), 2),
         }
         for _, row in result["top_transactions"].iterrows()
     ]
@@ -144,6 +156,83 @@ def analyze_transactions_endpoint():
         return jsonify({"error": "Не удалось проанализировать траты. Проверьте формат данных."}), 422
 
     return jsonify(format_result(result))
+
+
+@app.route("/api/parse-expense", methods=["POST"])
+def parse_expense_endpoint():
+    """
+    АИ-ассистент: принимает свободный текст, возвращает разобранную трату.
+
+    Тело запроса:
+    {"text": "потратил 20 евро на кофе вчера"}
+
+    Ответ:
+    {
+      "date": "2026-09-16",
+      "description": "кофе",
+      "amount": 20.0,
+      "currency": "EUR",
+      "category": "Dining",
+      "category_source": "ml",
+      "category_confidence": 0.81
+    }
+    """
+    body = request.get_json(silent=True) or {}
+    text = body.get("text", "").strip()
+
+    if not text:
+        return jsonify({"error": "Поле 'text' не должно быть пустым."}), 400
+
+    try:
+        result = parse_expense(text)
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Не удалось разобрать текст."}), 422
+
+    if result["amount"] is None:
+        return jsonify({"error": "Не удалось найти сумму в тексте. Укажи число, например «20» или «20.50».", "partial": result}), 422
+
+    return jsonify(result)
+
+
+@app.route("/api/feedback", methods=["POST"])
+def feedback():
+    """
+    Сохраняет исправление категории от пользователя в corrections.csv.
+
+    ВАЖНО: в отличие от старой встроенной модели, эта модель (обучена твоим
+    train.py) не дообучается мгновенно на лету. Исправление просто копится
+    в файл рядом с этим — периодически добавляй строки из corrections.csv
+    в свою sample_data_sk и переобучай: python train.py sample_data_sk model.joblib
+
+    Тело запроса:
+    {"description": "Kaufland Kosice", "category": "Продукты"}
+    """
+    body = request.get_json(silent=True) or {}
+    description = body.get("description")
+    category = body.get("category")
+
+    if not description or not category:
+        return jsonify({"error": "Нужны оба поля: description и category."}), 400
+
+    try:
+        is_new_file = not os.path.exists(CORRECTIONS_PATH)
+        with open(CORRECTIONS_PATH, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if is_new_file:
+                writer.writerow(["text", "category", "corrected_at"])
+            writer.writerow([description, category, datetime.now().isoformat(timespec="seconds")])
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Не удалось сохранить исправление."}), 500
+
+    return jsonify({"status": "ok", "note": "Сохранено в corrections.csv. Модель дообучится после следующего запуска train.py."})
+
+
+@app.route("/api/categories", methods=["GET"])
+def categories():
+    """Список всех доступных категорий — для выбора в приложении при исправлении."""
+    return jsonify({"categories": get_all_categories()})
 
 
 @app.errorhandler(404)

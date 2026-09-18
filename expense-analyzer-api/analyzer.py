@@ -1,9 +1,15 @@
 import pandas as pd
-from categorizer import categorize
+from skynet_categorizer import categorize_smart
+
+
+def _categorize_row(description: str):
+    category, source, confidence = categorize_smart(description)
+    return pd.Series({"category": category, "category_source": source, "category_confidence": confidence})
 
 
 def analyze_dataframe(df: pd.DataFrame) -> dict:
-    df["category"] = df["description"].apply(categorize)
+    categorized = df["description"].apply(_categorize_row)
+    df = pd.concat([df, categorized], axis=1)
     df["date"] = pd.to_datetime(df["date"])
 
     by_category = df.groupby("category")["amount"].sum().sort_values(ascending=False)
