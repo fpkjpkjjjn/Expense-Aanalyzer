@@ -241,5 +241,9 @@ def not_found(_e):
 
 
 if __name__ == "__main__":
-    # host="0.0.0.0" — обязательно, иначе с телефона по Wi-Fi не достучаться.
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    # Railway (и большинство хостингов) назначают порт через переменную
+    # окружения PORT — локально её нет, тогда используется 5000 как раньше.
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "true").lower() == "true"
+    # host="0.0.0.0" — обязательно, иначе снаружи контейнера/сети не достучаться.
+    app.run(host="0.0.0.0", port=port, debug=debug, use_reloader=False)
