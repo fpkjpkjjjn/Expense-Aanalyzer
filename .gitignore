@@ -17,3 +17,5 @@ build/
 # IDE
 .vscode/
 .idea/
+# Runtime data (генерируется сервером через /api/feedback, не для репозитория)
+corrections.csv
