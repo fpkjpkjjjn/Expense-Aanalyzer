@@ -39,7 +39,11 @@ def merge(database_path: str, corrections_path: str) -> None:
     with open(database_path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         for text, category in corrections:
-            writer.writerow([text, category])
+            # amount всегда 0.0 — колонка в обучении не используется (см. train.py),
+            # но нужна для совпадения числа колонок с основным датасетом
+            # (text,amount,category), иначе pandas сдвигает category в NaN
+            # и dropna() в train.py молча теряет всю строку при обучении.
+            writer.writerow([text, "0.0", category])
 
     # Очищаем corrections.csv, оставляя только заголовок
     with open(corrections_path, "w", newline="", encoding="utf-8") as f:
